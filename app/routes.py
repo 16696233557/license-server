@@ -53,7 +53,7 @@ def verify_license(key: str = Form(...), machine_code: str = Form(...)):
         c = conn.cursor()
         c.execute("""
             SELECT id, customer_name, expires_at, is_active
-            FROM licenses WHERE key = ? AND (machine_code = ? OR machine_code = '')
+            FROM licenses WHERE key = ? AND (machine_code = ? OR machine_code IS NULL OR machine_code = '')
         """, (key, machine_code))
         row = c.fetchone()
 
