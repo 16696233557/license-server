@@ -1,7 +1,7 @@
 """授权服务端 - 数据库模块"""
 import sqlite3, hashlib, os
 from pathlib import Path
-from contextmanager import contextmanager
+from contextlib import contextmanager
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 # Railway 持久化路径（本地开发用项目目录）
