@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>授权管理后台</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f0f2f5; color: #333; }
+
+        .header { background: #1a1a2e; color: #fff; padding: 0 20px; display: flex; align-items: center; justify-content: space-between; }
+        .header h2 { padding: 15px 0; font-size: 18px; }
+        .header button { background: #e94560; color: #fff; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; }
+
+        .container { max-width: 1200px; margin: 20px auto; padding: 0 20px; }
+
+        .login-box { max-width: 400px; margin: 100px auto; background: #fff; padding: 40px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
+        .login-box h1 { text-align: center; margin-bottom: 30px; color: #1a1a2e; }
+        .form-group { margin-bottom: 20px; }
+        .form-group label { display: block; margin-bottom: 8px; font-weight: 500; }
+        .form-group input { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; }
+        .btn { padding: 12px 24px; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 500; width: 100%; }
+        .btn-primary { background: #1a1a2e; color: #fff; }
+        .error { color: #e94560; font-size: 13px; margin-top: 10px; text-align: center; }
+
+        .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 20px; }
+        .stat { background: #fff; padding: 20px; border-radius: 8px; text-align: center; }
+        .stat .num { font-size: 32px; font-weight: 700; color: #1a1a2e; }
+        .stat .label { color: #666; font-size: 13px; margin-top: 5px; }
+
+        .card { background: #fff; border-radius: 8px; padding: 20px; margin-bottom: 20px; }
+        .card h3 { margin-bottom: 15px; font-size: 16px; color: #1a1a2e; border-bottom: 1px solid #eee; padding-bottom: 10px; }
+
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #eee; }
+        th { background: #f8f9fa; font-weight: 600; color: #666; font-size: 13px; }
+        .badge { padding: 4px 10px; border-radius: 20px; font-size: 12px; }
+        .badge-active { background: #d4edda; color: #155724; }
+        .badge-expired { background: #f8d7da; color: #721c24; }
+        .badge-revoked { background: #fff3cd; color: #856404; }
+
+        .form-row { display: flex; gap: 10px; flex-wrap: wrap; }
+        .form-row input, .form-row select { padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; }
+        .form-row .f { flex: 1; min-width: 150px; }
+        .btn-sm { padding: 6px 14px; font-size: 12px; border-radius: 4px; border: none; cursor: pointer; }
+        .btn-danger { background: #e94560; color: #fff; }
+        .btn-success { background: #28a745; color: #fff; }
+        .btn-warning { background: #ffc107; color: #333; }
+        .hidden { display: none !important; }
+
+        .toast { position: fixed; top: 20px; right: 20px; padding: 15px 25px; background: #28a745; color: #fff; border-radius: 8px; z-index: 2000; display: none; }
+        .toast.error { background: #e94560; }
+        .toast.show { display: block; }
+    </style>
+</head>
+<body>
+    <div class="header hidden" id="header">
+        <h2>🔑 餐卡系统授权管理后台</h2>
+        <button onclick="logout()">退出登录</button>
+    </div>
+
+    <div id="toast" class="toast"></div>
+
+    <!-- 登录页 -->
+    <div id="loginPage">
+        <div class="login-box">
+            <h1>授权管理后台</h1>
+            <form onsubmit="login(event)">
+                <div class="form-group">
+                    <label>用户名</label>
+                    <input type="text" id="username" required placeholder="admin">
+                </div>
+                <div class="form-group">
+                    <label>密码</label>
+                    <input type="password" id="password" required placeholder="admin888">
+                </div>
+                <button type="submit" class="btn btn-primary">登 录</button>
+                <div id="loginError" class="error"></div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 管理后台 -->
+    <div id="mainPage" class="hidden">
+        <div class="container">
+            <div class="stats">
+                <div class="stat"><div class="num" id="statTotal">0</div><div class="label">总卡密</div></div>
+                <div class="stat"><div class="num" id="statActive">0</div><div class="label">有效</div></div>
+                <div class="stat"><div class="num" id="statExpired">0</div><div class="label">已过期</div></div>
+            </div>
+
+            <div class="card">
+                <h3>生成新卡密</h3>
+                <form class="form-row" onsubmit="createLicense(event)">
+                    <div class="f"><input type="text" id="custName" placeholder="客户名称" required></div>
+                    <div class="f"><input type="text" id="machineCode" placeholder="机器码（可选）"></div>
+                    <div class="f">
+                        <select id="duration">
+                            <option value="30">30天</option>
+                            <option value="90">90天</option>
+                            <option value="180">180天</option>
+                            <option value="365">1年</option>
+                            <option value="730">2年</option>
+                            <option value="9999">永久</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-primary" style="width:auto;">生成卡密</button>
+                </form>
+                <div id="newKeyDisplay" class="hidden" style="margin-top:15px;padding:15px;background:#f8f9fa;border-radius:8px;">
+                    <div style="font-size:13px;color:#666;margin-bottom:8px;">新卡密：</div>
+                    <div style="font-size:24px;font-weight:700;color:#1a1a2e;letter-spacing:2px;" id="newKey"></div>
+                    <div style="font-size:12px;color:#666;margin-top:8px;" id="newKeyMeta"></div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>卡密列表</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>卡密</th>
+                            <th>客户</th>
+                            <th>机器码</th>
+                            <th>到期日</th>
+                            <th>状态</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="licensesTable"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API = '/api';
+        let token = localStorage.getItem('license_admin_token');
+
+        function showToast(msg, isError = false) {
+            const t = document.getElementById('toast');
+            t.textContent = msg;
+            t.className = 'toast' + (isError ? ' error' : '');
+            t.classList.add('show');
+            setTimeout(() => t.classList.remove('show'), 3000);
+        }
+
+        function logout() {
+            localStorage.removeItem('license_admin_token');
+            location.reload();
+        }
+
+        async function apiPost(endpoint, body) {
+            const fd = new FormData();
+            for (const k in body) fd.append(k, body[k]);
+            const r = await fetch(API + endpoint, { method: 'POST', body: fd });
+            return r.json();
+        }
+
+        async function login(e) {
+            e.preventDefault();
+            document.getElementById('loginError').textContent = '';
+            const result = await apiPost('/admin/login', {
+                username: document.getElementById('username').value,
+                password: document.getElementById('password').value
+            });
+            if (result.token) {
+                token = result.token;
+                localStorage.setItem('license_admin_token', token);
+                showPage('main');
+                loadStats();
+                loadLicenses();
+            } else {
+                document.getElementById('loginError').textContent = result.detail || '登录失败';
+            }
+        }
+
+        async function createLicense(e) {
+            e.preventDefault();
+            const custName = document.getElementById('custName').value;
+            const machineCode = document.getElementById('machineCode').value;
+            const duration = parseInt(document.getElementById('duration').value);
+            const result = await apiPost('/admin/licenses', {
+                customer_name: custName,
+                duration_days: duration,
+                machine_code: machineCode,
+                authorization: token
+            });
+            if (result.key) {
+                document.getElementById('newKey').textContent = result.key;
+                document.getElementById('newKeyMeta').textContent =
+                    `客户: ${custName} | 到期: ${result.expires_at} | 状态: 有效`;
+                document.getElementById('newKeyDisplay').classList.remove('hidden');
+                showToast('卡密生成成功');
+                loadStats();
+                loadLicenses();
+            } else {
+                showToast('生成失败: ' + (result.detail || '未知错误'), true);
+            }
+        }
+
+        async function extendLicense(id, days) {
+            const result = await apiPost(`/admin/licenses/${id}/extend`, { days, authorization: token });
+            if (result.success) {
+                showToast(`已延长至 ${result.expires_at}`);
+                loadStats();
+                loadLicenses();
+            } else {
+                showToast(result.detail || '续期失败', true);
+            }
+        }
+
+        async function revokeLicense(id) {
+            if (!confirm('确认封禁此卡密？')) return;
+            const r = await fetch(`${API}/admin/licenses/${id}?authorization=${token}`, { method: 'DELETE' });
+            const result = await r.json();
+            if (result.success) {
+                showToast('已封禁');
+                loadStats();
+                loadLicenses();
+            }
+        }
+
+        async function reactivateLicense(id) {
+            const r = await fetch(`${API}/admin/licenses/${id}/reactivate?authorization=${token}`, { method: 'PUT' });
+            const result = await r.json();
+            if (result.success) {
+                showToast('已恢复');
+                loadStats();
+                loadLicenses();
+            }
+        }
+
+        async function loadStats() {
+            const r = await fetch(`${API}/admin/stats?authorization=${token}`);
+            const s = await r.json();
+            document.getElementById('statTotal').textContent = s.total || 0;
+            document.getElementById('statActive').textContent = s.active || 0;
+            document.getElementById('statExpired').textContent = s.expired || 0;
+        }
+
+        async function loadLicenses() {
+            const r = await fetch(`${API}/admin/licenses?authorization=${token}`);
+            const licenses = await r.json();
+            document.getElementById('licensesTable').innerHTML = licenses.map(l => {
+                let status, badge;
+                if (!l.is_active) { status = '已封禁'; badge = 'badge-revoked'; }
+                else if (l.expires_at && l.expires_at < new Date().toISOString().split('T')[0]) { status = '已过期'; badge = 'badge-expired'; }
+                else { status = '有效'; badge = 'badge-active'; }
+
+                const extendBtns = [30, 90, 365].map(d =>
+                    `<button class="btn-sm btn-success" onclick="extendLicense(${l.id}, ${d})">+${d}天</button>`
+                ).join(' ');
+
+                return `<tr>
+                    <td style="font-family:monospace;letter-spacing:1px">${l.key}</td>
+                    <td>${l.customer_name || '-'}</td>
+                    <td style="font-size:12px;color:#666">${l.machine_code || '未绑定'}</td>
+                    <td>${l.expires_at}</td>
+                    <td><span class="badge ${badge}">${status}</span></td>
+                    <td>
+                        ${extendBtns}
+                        ${l.is_active
+                            ? `<button class="btn-sm btn-danger" onclick="revokeLicense(${l.id})">封禁</button>`
+                            : `<button class="btn-sm btn-warning" onclick="reactivateLicense(${l.id})">恢复</button>`
+                        }
+                    </td>
+                </tr>`;
+            }).join('') || '<tr><td colspan="6" style="text-align:center;color:#999">暂无数据</td></tr>';
+        }
+
+        function showPage(page) {
+            document.getElementById('loginPage').classList.toggle('hidden', page !== 'login');
+            document.getElementById('mainPage').classList.toggle('hidden', page !== 'main');
+            document.getElementById('header').classList.toggle('hidden', page !== 'main');
+        }
+
+        if (token) {
+            // 验证token有效性
+            fetch(`${API}/admin/stats?authorization=${token}`).then(r => {
+                if (r.ok) { showPage('main'); loadStats(); loadLicenses(); }
+                else { localStorage.removeItem('license_admin_token'); token = null; }
+            });
+        }
+    </script>
+</body>
+</html>
