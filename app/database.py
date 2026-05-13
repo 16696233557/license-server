@@ -4,8 +4,11 @@ from pathlib import Path
 from contextlib import contextmanager
 
 BASE_DIR = Path(__file__).resolve().parent.parent
-# Railway 持久化路径（本地开发用项目目录）
-DB_PATH = os.environ.get("LICENSE_DB_PATH", str(BASE_DIR / "license.db"))
+# Railway 持久化路径（/data/），本地开发用项目目录
+if os.path.exists('/data') and os.access('/data', os.W_OK):
+    DB_PATH = '/data/license.db'
+else:
+    DB_PATH = os.environ.get("LICENSE_DB_PATH", str(BASE_DIR / "license.db"))
 
 def get_db():
     conn = sqlite3.connect(DB_PATH, check_same_thread=False, timeout=30)
