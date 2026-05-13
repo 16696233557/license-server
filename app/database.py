@@ -10,6 +10,11 @@ if os.path.exists('/data') and os.access('/data', os.W_OK):
 else:
     DB_PATH = os.environ.get("LICENSE_DB_PATH", str(BASE_DIR / "license.db"))
 
+# 确保数据库目录存在
+_db_dir = os.path.dirname(DB_PATH)
+if _db_dir and not os.path.exists(_db_dir):
+    os.makedirs(_db_dir, exist_ok=True)
+
 def get_db():
     conn = sqlite3.connect(DB_PATH, check_same_thread=False, timeout=30)
     conn.row_factory = sqlite3.Row
