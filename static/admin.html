@@ -209,12 +209,12 @@
             }
         }
 
-        async function revokeLicense(id) {
-            if (!confirm('确认封禁此卡密？')) return;
+        async function deleteLicense(id) {
+            if (!confirm('确认删除此卡密？此操作不可恢复！')) return;
             const r = await fetch(`${API}/admin/licenses/${id}?authorization=${token}`, { method: 'DELETE' });
             const result = await r.json();
             if (result.success) {
-                showToast('已封禁');
+                showToast('已删除');
                 loadStats();
                 loadLicenses();
             }
@@ -260,7 +260,7 @@
                     <td>
                         ${extendBtns}
                         ${l.is_active
-                            ? `<button class="btn-sm btn-danger" onclick="revokeLicense(${l.id})">封禁</button>`
+                            ? `<button class="btn-sm btn-danger" onclick="deleteLicense(${l.id})">删除</button>`
                             : `<button class="btn-sm btn-warning" onclick="reactivateLicense(${l.id})">恢复</button>`
                         }
                     </td>

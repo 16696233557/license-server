@@ -138,12 +138,12 @@ def create_license(
     return {**lic, "signature": signature}
 
 @router.delete("/admin/licenses/{license_id}")
-def revoke_license(license_id: int, authorization: str = None):
+def delete_license(license_id: int, authorization: str = None):
     if not verify_admin_token(authorization):
         raise HTTPException(status_code=401, detail="未登录")
     with get_db_context() as conn:
         c = conn.cursor()
-        c.execute("UPDATE licenses SET is_active = 0 WHERE id = ?", (license_id,))
+        c.execute("DELETE FROM licenses WHERE id = ?", (license_id,))
     return {"success": True}
 
 @router.put("/admin/licenses/{license_id}/extend")
